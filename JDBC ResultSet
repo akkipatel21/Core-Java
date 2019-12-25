@@ -1,0 +1,425 @@
+package com.dao;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.sql.DataSource;
+import org.hibernate.Session;
+import com.models.IndustryHelper;
+import com.models.IndustryPlotBoundary;
+import com.persistance.util.HibernateUtilNA;
+
+public class QueryBuildDAOImpl implements QueryBuildDAO {
+
+	private DataSource dataSource;
+	  
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+    
+    @SuppressWarnings("unchecked")
+   	public  List<String> getminmax1(String fieldname,String whr,String tbl)
+   	{
+   		List<String> list = new ArrayList<String>();
+   		Connection conn = null;
+   		try{	  
+   			conn = dataSource.getConnection();
+   		    Statement stmt = conn.createStatement();
+   		    String sql;
+   		
+   	    	if (whr!=null && whr!="")
+   	    		whr=" and "+ whr;	
+   	    	 
+   		    sql = " SELECT min("+fieldname+"),max("+fieldname+") FROM "+ tbl +" where "+fieldname+" != 0 " + whr;
+   		     
+   		    System.out.println("query for minmax......"+sql);
+   		    ResultSet rs = stmt.executeQuery(sql);
+   	       
+   		    ResultSetMetaData rsmd = rs.getMetaData();
+   		    int columnCount = rsmd.getColumnCount();
+   		    while(rs.next()){
+   		      //Retrieve by column value
+   		    	for (int i = 1; i < columnCount+1; i++){
+   		    		String name = rs.getString(i);
+   			    	list.add(name);
+   		    	}              	
+   	        }   
+   		    System.out.println("columns.."+list);
+   		    rs.close();
+   		    stmt.close();
+   		    conn.close();
+   		   }catch (SQLException e) {
+   				throw new RuntimeException(e);
+   		   } finally {
+   				if (conn != null) {
+   					try {
+   						conn.close();
+   					} catch (SQLException e) {
+   					}
+   				}
+   		   }
+   		System.out.println("list56565:::"+list);
+   		return list;
+   	}
+
+ 
+ 
+    
+  	public  List<String> viewAllData(String id,String tblname)
+  	{
+		List<String> list = new ArrayList<String>();
+		Connection conn = null;
+		   try{	  
+			conn = dataSource.getConnection();
+		     Statement stmt = (Statement)conn.createStatement();
+		     String sql;
+		     
+		      sql = "SELECT * FROM  "+tblname+"  WHERE  id='"+id+"'";     
+		      System.out.println("query. view all data 1212....."+sql);
+		      ResultSet rs = stmt.executeQuery(sql);
+      
+		  /*    ResultSetMetaData rsmd = rs.getMetaData();
+		      int columnCount = rsmd.getColumnCount();
+		      System.out.println("number of cols..."+columnCount);
+		      for (int i = 1; i < columnCount+1; i++){
+		    	  //String name = rsmd.getColumnName(i);
+		    	  String name = rs.getString(i);
+		    	  list.add(name);
+		      }*/
+		      
+		      ResultSetMetaData rsmd = rs.getMetaData();
+		      int columnCount = rsmd.getColumnCount();
+		      while(rs.next()){
+		           //Retrieve by column value
+		    	  for (int i = 1; i < columnCount+1; i++){
+		    		  String name = rs.getString(i);
+			    	  list.add(name);
+		    	  }              	
+	        }	 
+      
+		     System.out.println("columns raw ....."+list);
+		      rs.close();
+		      stmt.close();
+		      conn.close();
+		   }catch (SQLException e) {
+				//throw new RuntimeException(e);
+				e.printStackTrace();
+			} finally {
+				if (conn != null) {
+					try {
+						conn.close();
+					} catch (SQLException e) {
+					}
+				}
+			}
+		return list;
+  	}
+    
+    
+  	/*public List<String> getTable(String tableName) {
+  		System.out.println("tablename.."+tableName);
+  		List<String> columnNames = new ArrayList<String>();
+  		Connection conn = null;
+  		try{		  
+  			conn = dataSource.getConnection();
+  		    Statement stmt = (Statement)conn.createStatement();
+  		    String sql= "SELECT * FROM "+tableName;
+  		     
+  		    System.out.println("query..table name"+sql);
+  		      ResultSet rs = stmt.executeQuery(sql);
+  		      ResultSetMetaData rsmd = rs.getMetaData();
+  		      int columnCount = rsmd.getColumnCount();
+  		      System.out.println("number of cols..."+columnCount);
+  		      for (int i = 1; i < columnCount+1; i++){
+  		    	  String name = rsmd.getColumnName(i);
+  		    	  //System.out.println("column     "+name);
+  		    	  
+  		    	  if(name.equals("category") || name.equals("pri_sector") || name.equals("pri_sub_sector") || name.equals("land_area") || name.equals("land_price_from") || name.equals("lease_from")  || name.equals("inve_target") || name.equals("inve_achi") || name.equals("emp_target") || name.equals("emp_achi") || name.equals("land_available"))
+  		    		  columnNames.add(name);
+  		      }
+        
+  		      System.out.println("columns for tables only..getTable.."+columnNames);
+  		      //STEP 6: Clean-up environment
+  		      rs.close();
+  		      stmt.close();
+  		      conn.close();
+  		   }catch (SQLException e) {
+  				//throw new RuntimeException(e);
+  			 e.printStackTrace();
+  			} finally {
+  				if (conn != null) {
+  					try {
+  						conn.close();
+  					} catch (SQLException e) {
+  					}
+  				}
+  			}
+  		return columnNames;
+  	}	
+	*/
+  	
+  	public Map<String,String> getTable(String tableName,String sector) {
+  		System.out.println("tablename.."+tableName);
+		List<String> columnNames = new ArrayList<String>();
+		List<String> values = new ArrayList<String>();
+		Map<String,String> val = new HashMap<String, String>();
+		Connection conn = null;
+		   try{  
+			conn = dataSource.getConnection();
+		  //  Statement stmt = conn.createStatement();
+		    String sql;
+
+		   if(tableName.equals("state2014_bound"))
+		    	sql = "SELECT value,field FROM mean_name_tbl WHERE "+sector+" and value='STNAME' Order by field";
+		    else
+		    	sql = "SELECT value,field FROM mean_name_tbl WHERE "+sector+" Order by field";
+  
+		    System.out.println("query..table name"+sql);
+		    
+		    PreparedStatement ps3=conn.prepareStatement(sql);
+		    ResultSet rs = ps3.executeQuery();
+		      ResultSetMetaData rsmd = rs.getMetaData();
+		      int columnCount = rsmd.getColumnCount();
+		      System.out.println("number of cols..."+columnCount);
+		   
+      		     //STEP 5: Extract data from result set
+		      while(rs.next()){
+		    	  val.put(rs.getString("field"), rs.getString("value"));		       
+		      }
+		      
+		      //STEP 6: Clean-up environment
+		      rs.close();
+		      ps3.close();
+		      conn.close();
+		   }catch (SQLException e) {
+				throw new RuntimeException(e);
+			} finally {
+				if (conn != null) {
+					try {
+						conn.close();
+					} catch (SQLException e) {
+					}
+				}
+			}
+		return val;
+  		
+  	}	
+  	
+
+	
+
+		
+	
+	
+	@SuppressWarnings("unchecked")	
+	public  List<String> getVillageIdQuery(String cqlquery,String tblname,String whr_qry)
+	{
+		List<String> list = new ArrayList<String>();
+		Connection conn = null;
+		   try{	  
+			conn = dataSource.getConnection();
+		     //Statement stmt = conn.createStatement();
+		     String sql;
+		     System.out.print("TAble nAme.............."+tblname);
+		     if(tblname.equals("state2014_bound"))
+		    	 sql = "SELECT stcode11 FROM "+tblname+" WHERE "+cqlquery; 
+		     		
+		     else
+		    	 sql = "SELECT vil_2011 FROM "+tblname+" WHERE "+cqlquery+" "+whr_qry; 
+		    	 
+		      System.out.println("query. 1212... village code zoom   "+sql);
+		     PreparedStatement ps4=conn.prepareStatement(sql);
+		      ResultSet rs = ps4.executeQuery();
+     
+		      ResultSetMetaData rsmd = rs.getMetaData();
+		      int columnCount = rsmd.getColumnCount();
+		      while(rs.next()){
+		           //Retrieve by column value
+		    	  for (int i = 1; i < columnCount+1; i++){
+		    		  String name =rs.getString(i);
+			    	  list.add(name);
+		    	  }              	
+	        }	      
+		     System.out.println("columns.. village code zoom    "+list);
+		      rs.close();
+		      ps4.close();
+		      conn.close();
+		   }catch (SQLException e) {
+				throw new RuntimeException(e);
+			} finally {
+				if (conn != null) {
+					try {
+						conn.close();
+					} catch (SQLException e) {
+					}
+				}
+			}
+			return list;
+	}
+	
+	
+	
+	  	
+	  	public IndustryPlotBoundary viewMoreDataReport(int id){
+			Session session = HibernateUtilNA.getSessionFactory().openSession();
+			session.beginTransaction(); 
+			IndustryPlotBoundary industryPlotBoundary = (IndustryPlotBoundary) session.get(IndustryPlotBoundary.class,id);
+			
+			session.getTransaction().commit();
+			session.close();
+			return industryPlotBoundary;
+			}
+
+		@Override
+		public List<IndustryHelper> getQueryBuilderList(String sql,Integer tblNo) {
+			 ArrayList<IndustryHelper> list = new ArrayList<IndustryHelper>();
+			 Connection conn = null;
+			   try{	  
+				conn = dataSource.getConnection();
+			    Statement stmt = (Statement)conn.createStatement();
+			    			     
+			     System.out.println(sql);
+//			      sql = "SELECT * FROM industrial_park_boundary_iiis WHERE size_of_pa > '4' AND dist_nh_km >= '5' AND near_airpo ='5'";      
+			      String Q = sql+" Order By size_of_pa";
+			      ResultSet rs = stmt.executeQuery(Q);
+			      switch (tblNo) { 
+			        case 1: //industrial_park_boundary_iiis
+			        	while (rs.next()) {
+			        		IndustryHelper industrialParkBoundryHelper = new IndustryHelper();
+			            	industrialParkBoundryHelper.setGid(rs.getInt("gid"));
+			            	industrialParkBoundryHelper.setIndName(rs.getString("ind_name"));
+			            	industrialParkBoundryHelper.setDistrict(rs.getString("district"));
+			            	industrialParkBoundryHelper.setTaluka(rs.getString("taluka"));
+			            	industrialParkBoundryHelper.setVillage(rs.getString("village"));
+			            	industrialParkBoundryHelper.setSize(rs.getDouble("size_of_pa"));
+			                list.add(industrialParkBoundryHelper);
+			        		}
+			            break; 
+			        case 2: //textilepark_boundary
+			        	while (rs.next()) {
+			            	IndustryHelper industrialParkBoundryHelper = new IndustryHelper();
+			            	industrialParkBoundryHelper.setGid(rs.getInt("gid"));
+			            	industrialParkBoundryHelper.setIndName(rs.getString("ind_name"));
+			            	industrialParkBoundryHelper.setDistrict(rs.getString("district"));
+			            	industrialParkBoundryHelper.setTaluka(rs.getString("taluka"));
+			            	industrialParkBoundryHelper.setVillage(rs.getString("village"));
+			            	industrialParkBoundryHelper.setSize(rs.getDouble("size_of_pa"));
+			                list.add(industrialParkBoundryHelper);
+			        		}
+			            break; 
+			        case 3: //logisticpark_boundary
+			        	while (rs.next()) {
+			        		IndustryHelper industrialParkBoundryHelper = new IndustryHelper();
+			        		industrialParkBoundryHelper.setGid(rs.getInt("gid"));
+			            	industrialParkBoundryHelper.setIndName(rs.getString("ind_name"));
+			            	industrialParkBoundryHelper.setDistrict(rs.getString("district"));
+			            	industrialParkBoundryHelper.setTaluka(rs.getString("taluka"));
+			            	industrialParkBoundryHelper.setVillage(rs.getString("village"));
+			            	industrialParkBoundryHelper.setSize(rs.getDouble("size_of_pa"));
+			                list.add(industrialParkBoundryHelper);
+			        		} 
+			            break; 
+			        case 4: //land_bank_gcs_iiis
+			        	while (rs.next()) {
+			            	IndustryHelper industrialParkBoundryHelper = new IndustryHelper();
+			            	industrialParkBoundryHelper.setGid(rs.getInt("gid"));
+			            	industrialParkBoundryHelper.setsNo(rs.getString("sno"));
+			            	industrialParkBoundryHelper.setDistrict(rs.getString("district"));
+			            	industrialParkBoundryHelper.setTaluka(rs.getString("taluka"));
+			            	industrialParkBoundryHelper.setVillage(rs.getString("village"));
+			            	industrialParkBoundryHelper.setSize(rs.getDouble("size_of_pa"));
+			                list.add(industrialParkBoundryHelper);
+			        		}
+			            break; 
+			        case 5: //sez_boundary
+			        	while (rs.next()) {
+			            	IndustryHelper industrialParkBoundryHelper = new IndustryHelper();
+			            	industrialParkBoundryHelper.setGid(rs.getInt("gid"));
+			            	industrialParkBoundryHelper.setIndName(rs.getString("name"));
+			            	industrialParkBoundryHelper.setDistrict(rs.getString("district"));
+			            	industrialParkBoundryHelper.setTaluka(rs.getString("taluka"));
+			            	industrialParkBoundryHelper.setVillage(rs.getString("village"));
+			            	industrialParkBoundryHelper.setSize(rs.getDouble("size_of_pa"));
+			                list.add(industrialParkBoundryHelper);
+			        		} 
+			            break; 
+			        case 6://sir_boundary_iiis
+			            while (rs.next()) {
+			            	IndustryHelper industrialParkBoundryHelper = new IndustryHelper();
+			            	industrialParkBoundryHelper.setGid(rs.getInt("gid"));
+			            	industrialParkBoundryHelper.setIndName(rs.getString("sir_name"));
+			            	industrialParkBoundryHelper.setDistrict(rs.getString("district"));
+			            	industrialParkBoundryHelper.setTaluka(rs.getString("taluka"));
+			            	industrialParkBoundryHelper.setVillage(rs.getString("village"));
+			            	industrialParkBoundryHelper.setSize(rs.getDouble("size_of_pa"));
+			                list.add(industrialParkBoundryHelper);
+			            }
+			        case 7: //estate_boundary
+			        	while (rs.next()) {
+			            	IndustryHelper industrialParkBoundryHelper = new IndustryHelper();
+			            	industrialParkBoundryHelper.setGid(rs.getInt("gid"));
+			            	industrialParkBoundryHelper.setIndName(rs.getString("estate_nam"));
+			            	industrialParkBoundryHelper.setDistrict(rs.getString("district"));
+			            	industrialParkBoundryHelper.setTaluka(rs.getString("taluka"));
+			            	industrialParkBoundryHelper.setVillage(rs.getString("village"));
+			            	industrialParkBoundryHelper.setSize(rs.getDouble("size_of_pa"));
+			                list.add(industrialParkBoundryHelper);
+			        		}
+			            break; 
+			        case 8: //salt_pan
+			        	while (rs.next()) {
+			            	IndustryHelper industrialParkBoundryHelper = new IndustryHelper();
+			            	industrialParkBoundryHelper.setGid(rs.getInt("gid"));
+			            	industrialParkBoundryHelper.setDistrict(rs.getString("district"));
+			            	industrialParkBoundryHelper.setTaluka(rs.getString("taluka"));
+			            	industrialParkBoundryHelper.setVillage(rs.getString("village"));
+			            	industrialParkBoundryHelper.setSize(rs.getDouble("size_of_pa"));
+			                list.add(industrialParkBoundryHelper);
+			        		}
+			            break; 
+			        } 
+ 		        } catch (Exception e) {
+		            System.err.println("Got an exception! ");
+		            System.err.println(e.getMessage());
+		        }
+			return list;
+		    
+		}
+
+		@Override
+		public IndustryHelper getConnectivity(String tbl, Integer gid) {
+			 Connection conn = null;
+			 IndustryHelper industryHelper = new IndustryHelper();
+			   try{	  
+				conn = dataSource.getConnection();
+			    Statement stmt = (Statement)conn.createStatement();
+			    String Q = "select * from "+tbl+" Where gid="+gid+""; 
+			    System.out.println(Q);
+			    ResultSet rs = stmt.executeQuery(Q);
+			    while (rs.next()) {
+			       industryHelper.setNh(rs.getString("distance_from_national_highway"));
+			       industryHelper.setSh(rs.getString("distance_from_state_highway"));
+			       industryHelper.setRail(rs.getString("distance_from_near_railway"));
+			       industryHelper.setNearPort(rs.getString("distance_from_near_port"));
+			       industryHelper.setNearAirport(rs.getString("distance_from_near_airport"));
+			       industryHelper.setGas(rs.getString("distance_from_gas_grid"));
+			       industryHelper.setPower(rs.getString("distance_from_power_grid"));
+			       industryHelper.setWater(rs.getString("distance_from_water_grid"));
+			       industryHelper.setNearMinorPort(rs.getString("distance_from_near_port_minor"));
+			       System.out.println(industryHelper.toString());
+			    }
+			   }
+			   catch (Exception e) {
+	           System.err.println("Got an exception! ");
+	           System.err.println(e.getMessage());
+	        }
+			return industryHelper;
+       }
+}
